@@ -6,4 +6,4 @@ app.get('/', (req, res) => {
   res.send('Hello')
 })
 
-app.listen(10000, '0.0.0.0')
+app.listen(PORT, HOST, () => console.log())
