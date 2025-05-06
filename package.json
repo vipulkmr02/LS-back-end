@@ -2,15 +2,22 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "createSchema": "node dist/schema.js createSchema",
+    "createDB": "node dist/schema.js createDB",
+    "dropDB": "node dist/schema.js dropDB",
+    "b-debug":"tsc --sourceMap --outDir debug",
+    "debug":"DEBUG=true node --inspect-brk debug/index.js"
   },
   "dependencies": {
     "express": "^5.1.0",
-    "mongoose": "^8.14.1"
+    "mongoose": "^8.14.1",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",
     "@types/node": "^22.15.3",
+    "@types/sqlite3": "^3.1.11",
     "typescript": "^5.8.3"
   }
 }
