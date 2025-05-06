@@ -5,7 +5,11 @@ import { env } from "process";
 
 const DEBUG = env.DEBUG;
 
-export const addUser = (name: string, email: string, password: string): Promise<string[]> => {
+export const addUser = (
+  name: string,
+  email: string,
+  password: string):
+  Promise<string[]> => {
   DEBUG && console.debug('adding user', name, email, password)
   const db = getDB();
   const hPassword = hash('sha256', password);
@@ -24,7 +28,7 @@ export const addUser = (name: string, email: string, password: string): Promise<
   })
 }
 
-export const getUser = (email: string) => {
+export const getUser = (email: string): Promise<User> => {
   const db = getDB()
   return new Promise((resolve, reject) => {
     db.serialize(() => {

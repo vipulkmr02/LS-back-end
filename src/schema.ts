@@ -23,7 +23,6 @@ const createSchema = () => {
     label VARCHAR(100),
     summary TEXT,
     tags TEXT,
-    fav INTEGER,
     FOREIGN KEY (uid) REFERENCES users(uid))`)
 
     x.run(`CREATE TABLE users (
@@ -42,16 +41,16 @@ const createSchema = () => {
 }
 
 export interface Link {
-  uid: string
+  uid: number
   link: string
   label: string
   summary: string
   tags: string
-  fav: boolean
+  fav: 0 | 1
 }
 
 export interface User {
-  uid: string
+  uid: number
   name: string
   email: string
   phash: string

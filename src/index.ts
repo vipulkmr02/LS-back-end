@@ -1,13 +1,15 @@
-import express from "express";
+import express, { Request, NextFunction, Response, RequestHandler } from "express";
 import cors from "cors";
 import { loadEnvFile, env } from "process";
-import { addUser, initUserSession, validateSession, validateUser } from "./users.js";
+import { addUser, getUser, initUserSession, validateSession, validateUser } from "./users.js";
+import { deleteBookmark, filterBookmark, genSummary, newBookmark, updateBookmarkField } from "./links.js";
+import { Link, User } from "./schema.js";
 loadEnvFile('.env')
 
 const app = express();
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-const allowedOrigins = ['http://localhost:5173']; // Add your Vite frontend URL
+const allowedOrigins = ['http://localhost:5173', 'http://localhost:8000']; // Add your Vite frontend URL
 app.use(cors({
   origin: (origin, callback) => {
     if (allowedOrigins.includes(origin!) || !origin) {
@@ -16,7 +18,7 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  methods: 'GET,PUT,PATCH,POST,DELETE,OPTIONS',
   credentials: true,
   allowedHeaders: 'Content-Type, Authorization',
 }));
@@ -90,7 +92,6 @@ userRouter.post('/initSession', (req, res) => {
 })
 userRouter.get('/keyCheck', (req, res) => {
   const { email, key } = req.body;
-  DEBUG && console.debug("key Check", email, key)
   validateSession(email, key).then(
     (x: Boolean) => {
       res.send({ active: x })
@@ -105,7 +106,114 @@ userRouter.get('/keyCheck', (req, res) => {
 })
 
 
+const mainRouter = express.Router();
+
+const checkKey = (req: Request, res: Response, next: NextFunction) => {
+  const key = req.headers['key'] as string
+  const email = req.headers['mail'] as string
+
+  if (key && email) {
+    validateSession(email, key).then(
+      x => {
+        if (x) {
+          getUser(email).then(
+            u => req.body.user = u
+          ).finally(next)
+        }
+        else res.status(401).send(
+          { error: 'Unauthorized: Missing or invalid validKey' }
+        )
+      }
+    )
+  }
+}
+
+mainRouter.use(checkKey);
+
+mainRouter.post('/query', (req, res) => {
+  const { query } = req.body;
+  const user: User = req.body.user;
+  if (!query)
+    res.status(401).send({
+      error: true,
+      message: "Query request made but Query not found"
+    })
+  else filterBookmark(query).then(
+    (results) => res.send({ results: results })
+  ).catch((err: Error) => {
+    res.status(500).send({
+      error: true,
+      message: err.message
+    })
+  })
+})
+
+mainRouter.post('/create', async (req, res) => {
+  const bookmark: Partial<Link> = req.body.bookmark;
+  const user: User = req.body.user;
+
+  if (!bookmark)
+    res.status(401).send({
+      error: true,
+      message: "No bookmarks in body found"
+    })
+  else {
+    const summary = await genSummary(bookmark.link!);
+    const completeBookmark: Link = {
+      summary: summary,
+      link: bookmark.link!,
+      uid: user.uid,
+      fav: bookmark.fav!,
+      label: bookmark.label!,
+      tags: bookmark.tags!,
+    }
+    newBookmark(completeBookmark).then(
+      (_) => res.status(201).send({
+        message: "Created new Bookmark"
+      })
+    ).catch((err: Error) => {
+      res.status(500).send({
+        error: true,
+        message: err.message
+      })
+    })
+  }
+})
+
+mainRouter.put('/update', (req, res) => {
+  const query: { [x: string]: string | number | boolean } = req.body.query;
+  const updatedFields: { [x: string]: string | number | boolean } = req.body.uf;
+  const user: User = req.body.user;
+
+  updateBookmarkField(
+    { uid: user.uid, ...query }, updatedFields
+  ).then(
+    (_) => {
+      res.status(201).send({
+        message: "Updated",
+        ...updatedFields
+      })
+    }
+  ).catch((err: Error) => {
+    res.status(500).send({
+      error: true,
+      message: err.message
+    })
+  })
+})
+
+
+mainRouter.delete('/delete', (req, res) => {
+  const bid: number = req.body.bid;
+  const user: User = req.body.user;
+  deleteBookmark(bid).then(
+    (_) => res.send({message: "Deleted"})
+  )
+})
+
+
 app.use('/users', userRouter)
+app.use('/main', mainRouter)
 
 app.get('/', (req, res) => {
   res.send('Hello from the LS API')
