@@ -6,15 +6,17 @@
     "createSchema": "node dist/schema.js createSchema",
     "createDB": "node dist/schema.js createDB",
     "dropDB": "node dist/schema.js dropDB",
-    "b-debug":"tsc --sourceMap --outDir debug",
-    "debug":"DEBUG=true node --inspect-brk debug/index.js"
+    "b-debug": "tsc --sourceMap --outDir debug",
+    "debug": "DEBUG=true node --inspect-brk debug/index.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^5.1.0",
     "mongoose": "^8.14.1",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
     "@types/node": "^22.15.3",
     "@types/sqlite3": "^3.1.11",

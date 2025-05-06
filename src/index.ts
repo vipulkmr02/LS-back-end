@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import { loadEnvFile, env } from "process";
 import { addUser, initUserSession, validateSession, validateUser } from "./users.js";
 loadEnvFile('.env')
@@ -7,19 +8,18 @@ const app = express();
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 const allowedOrigins = ['http://localhost:5173']; // Add your Vite frontend URL
-const corsOptions = {
-  origin: (origin:string, callback:() => void) => {
-    if (allowedOrigins.includes(origin) || !origin) { // Allow specific origins and no origin (e.g., mobile apps)
+app.use(cors({
+  origin: (origin, callback) => {
+    if (allowedOrigins.includes(origin!) || !origin) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Specify allowed HTTP methods
-  credentials: true, // Enable sending cookies across origins if needed
-  allowedHeaders: 'Content-Type, Authorization', // Specify allowed headers
-};
-app.use(cors(corsOptions));
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true,
+  allowedHeaders: 'Content-Type, Authorization',
+}));
 
 const [HOST, PORT] = [env.HOST!, parseInt(env.PORT!)]
 const DEBUG = Boolean(env.DEBUG)
@@ -58,27 +58,32 @@ userRouter.post('/new', (req, res) => {
     }
   )
 })
-userRouter.get('/initSession', (req, res) => {
+userRouter.post('/initSession', (req, res) => {
   const { email, password } = req.body;
-  validateUser(email, password).then(
+
+  // checking if the user exists or not
+  validateUser(email, null).then(
     (x) => {
-      if (x) initUserSession(email).then(
-        ([rEmail, key]) => {
-          res.status(201).send(JSON.stringify({
-            email: rEmail,
-            key: key.toString()
-          }))
-        }
-      ).catch((err: Error) => {
-        res.status(500).send(JSON.stringify({
-          error: true,
-          name: err.name,
-          message: err.message
-        }))
-      });
+      if (x) validateSession(email, password).then(
+        () => {
+          initUserSession(email).then(
+            ([rEmail, key]) => {
+              res.status(201).send(JSON.stringify({
+                email: rEmail,
+                key: key.toString()
+              }))
+            }
+          ).catch((err: Error) => {
+            res.status(500).send(JSON.stringify({
+              error: true,
+              name: err.name,
+              message: err.message
+            }))
+          })
+        })
       else res.status(400).send(JSON.stringify({
         error: true,
-        message: "Invalid User"
+        message: "User Not Found"
       }))
     }
   )

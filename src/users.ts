@@ -51,6 +51,7 @@ export const validateUser = (email: string, password: string | null): Promise<Bo
       [email],
       (err, row: { phash: string }) => {
         db.close();
+        DEBUG && console.debug(password);
         if (err) {
           console.error('Database error:', err);
           reject(err);
